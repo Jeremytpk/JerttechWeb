@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jerttech | À Propos & Contact</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Custom Font Setup (Inter is preferred) */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #1f2937; /* Gray-800 */
+        }
+        /* Define custom colors based on the logo (Deep Blue and Amber) */
+        .jerttech-blue {
+            background-color: #2c5364; /* Deep Blue from Logo */
+        }
+        .jerttech-amber {
+            background-color: #009e60; /* EliteReply Green from Logo */
+        }
+        .text-jerttech-blue {
+            color: #2c5364;
+        }
+        .border-jerttech-amber {
+            border-color: #f59e0b;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 antialiased">
+
+    <!-- Header & Navigation -->
+    <header class="shadow-md bg-white sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <!-- Logo -->
+                <a href="index.html" class="flex items-center space-x-3">
+                    <img src="assets/jerttech_logo.png" alt="Logo Jerttech" class="h-10 w-auto">
+                    <span class="text-2xl font-extrabold text-jerttech-blue tracking-tight">JERTTECH</span>
+                </a>
+                
+                <!-- Desktop Navigation -->
+                <nav class="hidden md:flex space-x-8 text-gray-600 font-medium">
+                    <a href="solutions.html" class="hover:text-jerttech-blue transition duration-150">Solutions</a>
+                    <a href="a_propos.html" class="text-jerttech-blue transition duration-150 font-bold">À Propos</a>
+                    <a href="a_propos.html#contact" class="hover:text-jerttech-blue transition duration-150">Contact</a>
+                </nav>
+
+                <!-- CTA Button -->
+                <a href="a_propos.html#contact" class="hidden md:inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-full shadow-sm text-white jerttech-amber hover:bg-[#1a3843] transition duration-300">
+                    Nous Contacter
+                </a>
+
+                <!-- Mobile Menu Button (Hamburger) -->
+                <button id="mobile-menu-button" class="md:hidden text-jerttech-blue p-2 rounded-md hover:bg-gray-100 transition duration-150">
+                    <i data-lucide="menu"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Menu (Hidden by default) -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white shadow-lg border-t border-gray-100">
+            <div class="pt-2 pb-3 space-y-1 px-4">
+                <a href="solutions.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-jerttech-blue">Solutions</a>
+                <a href="a_propos.html" class="block px-3 py-2 rounded-md text-base font-medium text-jerttech-blue bg-gray-50">À Propos</a>
+                <a href="a_propos.html#contact" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-jerttech-blue">Contact</a>
+                <a href="a_propos.html#contact" class="block w-full text-center px-4 py-2 border border-transparent text-sm font-medium rounded-full shadow-sm text-white jerttech-amber hover:bg-[#1a3843] transition duration-300 mt-2">
+                    Nous Contacter
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- About Us / CEO Section -->
+    <section id="about" class="py-16 sm:py-24 bg-gray-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="lg:text-center mb-16">
+                <span class="jerttech-blue inline-block px-3 py-1 text-xs font-semibold uppercase tracking-wider text-white rounded-full">Leadership</span>
+                <h1 class="mt-4 text-3xl sm:text-4xl font-extrabold text-jerttech-blue">
+                    Guidé par la Vision et l'Expertise
+                </h1>
+            </div>
+            
+            <div class="flex flex-col md:flex-row items-center bg-white p-8 rounded-2xl shadow-xl max-w-4xl mx-auto">
+                <!-- Placeholder Image/Icon -->
+                <div class="flex-shrink-0 mb-6 md:mb-0 md:mr-8 w-32 h-32 md:w-48 md:h-48 rounded-full bg-jerttech-blue/10 flex items-center justify-center p-4">
+                    <i data-lucide="user" class="w-16 h-16 text-jerttech-blue"></i>
+                </div>
+
+                <div class="text-center md:text-left">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-2">Jeremy Topaka</h2>
+                    <p class="text-xl font-medium text-jerttech-amber mb-4">PDG et Fondateur, Jerttech</p>
+                    <p class="text-gray-600 leading-relaxed">
+                        Jeremy Topaka dirige Jerttech en se concentrant clairement sur la technologie transformatrice. Sa vision est de développer des plateformes sophistiquées et fiables qui résolvent des défis complexes du monde réel, qu'il s'agisse d'optimiser la logistique mondiale avec DriverRoom ou de renforcer les économies locales avec EliteReply. Jeremy s'assure que chaque solution Jerttech repose sur les piliers de la haute qualité, du professionnalisme et de l'impact mesurable.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="py-16 sm:py-24 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-3xl sm:text-4xl font-extrabold text-jerttech-blue mb-4">
+                Collaborer avec l'Innovation
+            </h2>
+            <p class="text-xl text-gray-600 max-w-2xl mx-auto mb-10">
+                Prêt à transformer vos opérations avec une solution Jerttech ? Nous sommes là pour vous aider.
+            </p>
+            
+            <a href="#contact-form" class="inline-flex items-center px-10 py-4 border-2 border-jerttech-blue text-lg font-bold rounded-full shadow-lg text-white jerttech-blue hover:bg-white hover:text-jerttech-blue transition duration-300">
+                Contacter Notre Équipe <i data-lucide="mail" class="w-5 h-5 ml-3"></i>
+            </a>
+
+            <!-- Mock Contact Form (Simulated, as no backend is available) -->
+            <div id="contact-form" class="mt-12 p-8 bg-gray-50 rounded-2xl shadow-inner max-w-xl mx-auto">
+                <form class="space-y-6">
+                    <div>
+                        <input type="text" placeholder="Votre Nom" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-jerttech-amber focus:border-jerttech-amber">
+                    </div>
+                    <div>
+                        <input type="email" placeholder="E-mail Professionnel" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-jerttech-amber focus:border-jerttech-amber">
+                    </div>
+                    <div>
+                        <textarea placeholder="Parlez-nous de vos besoins..." rows="4" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-jerttech-amber focus:border-jerttech-amber"></textarea>
+                    </div>
+                    <button type="submit" class="w-full px-4 py-3 text-lg font-semibold rounded-lg text-white jerttech-amber hover:jerttech-blue transition duration-300">
+                        Envoyer le Message
+                    </button>
+                </form>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="jerttech-blue text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 border-b border-white/20 pb-8 mb-8">
+                <div>
+                    <h4 class="text-xl font-semibold mb-4 text-jerttech-amber">JERTTECH</h4>
+                    <p class="text-sm">Innover pour un avenir meilleur dans la logistique et le commerce.</p>
+                </div>
+                <div>
+                    <h4 class="text-xl font-semibold mb-4">Solutions</h4>
+                    <ul class="space-y-2">
+                        <li><a href="solutions.html" class="text-sm hover:text-jerttech-amber transition duration-150">DriverRoom</a></li>
+                        <li><a href="solutions.html" class="text-sm hover:text-jerttech-amber transition duration-150">EliteReply</a></li>
+                        <li><a href="solutions.html" class="text-sm hover:text-jerttech-amber transition duration-150">Autres Plateformes</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-xl font-semibold mb-4">Entreprise</h4>
+                    <ul class="space-y-2">
+                        <li><a href="a_propos.html" class="text-sm hover:text-jerttech-amber transition duration-150">À Propos</a></li>
+                        <li><a href="a_propos.html" class="text-sm hover:text-jerttech-amber transition duration-150">Leadership</a></li>
+                        <li><a href="a_propos.html#contact" class="text-sm hover:text-jerttech-amber transition duration-150">Contact</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-xl font-semibold mb-4">Nous Contacter</h4>
+                    <p class="text-sm flex items-start mb-2">
+                        <i data-lucide="map-pin" class="w-4 h-4 mr-2 mt-1 text-jerttech-amber"></i> Siège Mondial (Adresse Fictive)
+                    </p>
+                    <p class="text-sm flex items-start">
+                        <i data-lucide="mail" class="w-4 h-4 mr-2 mt-1 text-jerttech-amber"></i> info@jerttech.com
+                    </p>
+                </div>
+            </div>
+
+            <!-- Copyright and Legal -->
+            <div class="text-center text-sm text-white/70">
+                &copy; 2024 Jerttech. Tous droits réservés.
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript for Mobile Menu and Lucide Icons -->
+    <script>
+        // Toggle mobile menu visibility
+        const menuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        menuButton.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // Close menu when a link is clicked (for smooth scrolling on mobile)
+        const mobileLinks = mobileMenu.querySelectorAll('a');
+        mobileLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.add('hidden');
+            });
+        });
+        
+        // Render Lucide icons
+        lucide.createIcons();
+    </script>
+</body>
+</html>
