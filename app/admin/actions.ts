@@ -7,7 +7,9 @@ import { stripe } from '@/lib/stripe';
 import { MAINTENANCE_CENTS, PLANS, STAGES, type PlanId } from '@/lib/pricing';
 
 async function admin() {
-  if (!(await requireAdmin())) redirect('/');
+  const user = await requireAdmin();
+  if (!user) redirect('/');
+  return user;
 }
 const done = () => revalidatePath('/admin');
 
@@ -103,5 +105,18 @@ export async function setProjectStatus(form: FormData) {
   const status = String(form.get('status'));
   if (!['building', 'live', 'maintenance', 'closing', 'cancelled', 'bought'].includes(status)) return;
   await updateRow('projects', String(form.get('id')), { status });
+  done();
+}
+
+/** The admin switch: gives someone access to the admin portal, or takes it away. */
+export async function setRole(form: FormData) {
+  const me = await admin();
+  const id = String(form.get('id'));
+  const role = form.get('role') === 'admin' ? 'admin' : 'customer';
+  if (id === me.id) return; // nobody can lock themselves out
+  const person = await getRow('profiles', id);
+  if (!person || person.role === role) return;
+  await updateRow('profiles', id, { role });
+  await logActivity(`${person.full_name || person.email} ${role === 'admin' ? 'now has' : 'no longer has'} admin access.`);
   done();
 }

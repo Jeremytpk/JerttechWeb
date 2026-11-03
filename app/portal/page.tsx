@@ -32,6 +32,7 @@ export default async function Portal({ searchParams }: { searchParams: { paid?: 
       <div className="page-head" style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <div><h1>My projects</h1><p>Signed in as {profile?.email || user.email}.</p></div>
         <div className="btns">
+          {profile?.role === 'admin' && <Link className="btn btn-primary btn-sm" href="/admin">Admin portal</Link>}
           {profile?.stripe_customer_id && <form action={billingPortal}><button className="btn btn-ghost btn-sm">Update card and invoices</button></form>}
           <form action="/auth/signout" method="post"><button className="btn btn-ghost btn-sm">Sign out</button></form>
         </div>

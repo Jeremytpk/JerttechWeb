@@ -4,15 +4,16 @@ import { requireAdmin } from '@/lib/auth';
 import { allRows, newest, type Row } from '@/lib/db';
 import { PLANS, STAGES, MAINTENANCE_CENTS, money, monthlyCents, type PlanId } from '@/lib/pricing';
 import { Pill, STATUS, PAY, CH, CODE, CH_TYPE, URG, CANCEL_OPT, fdate } from '@/lib/labels';
-import { setStage, setQuote, setChangeStatus, decideCode, processCancel, setProjectStatus } from './actions';
+import { setStage, setQuote, setChangeStatus, decideCode, processCancel, setProjectStatus, setRole } from './actions';
 
 export const metadata = { title: 'Admin', robots: { index: false } };
 export const dynamic = 'force-dynamic';
 
-const TABS = [['overview', 'Overview'], ['builds', 'Projects'], ['customers', 'Customers'], ['payments', 'Payments'], ['changes', 'Change requests'], ['code', 'Code requests'], ['cancels', 'Cancellations']] as const;
+const TABS = [['overview', 'Overview'], ['builds', 'Projects'], ['customers', 'Users'], ['payments', 'Payments'], ['changes', 'Change requests'], ['code', 'Code requests'], ['cancels', 'Cancellations']] as const;
 
 export default async function Admin({ searchParams }: { searchParams: { tab?: string } }) {
-  if (!(await requireAdmin())) redirect('/');
+  const me = await requireAdmin();
+  if (!me) redirect('/');
   const tab = TABS.some(t => t[0] === searchParams.tab) ? searchParams.tab! : 'overview';
   const [profiles, projectRows, paymentRows, changeRows, codeRows, cancelRows, activityRows] = await Promise.all(
     ['profiles', 'projects', 'payments', 'change_requests', 'code_requests', 'cancellations', 'activity'].map(allRows),
@@ -22,7 +23,7 @@ export default async function Admin({ searchParams }: { searchParams: { tab?: st
   const projects: any[] = projectRows.sort(newest).map(p => ({ ...p, profiles: people.get(p.customer_id) }));
   const byId = new Map(projects.map(p => [p.id, p]));
   const join = (list: Row[], limit?: number): any[] => list.sort(newest).slice(0, limit).map(r => ({ ...r, projects: byId.get(r.project_id) }));
-  const customers: any[] = profiles.filter(p => p.role === 'customer').sort(newest);
+  const customers: any[] = profiles.sort(newest);
   const payments = join(paymentRows, 300);
   const changes = join(changeRows, 300);
   const codes = join(codeRows);
@@ -49,7 +50,7 @@ export default async function Admin({ searchParams }: { searchParams: { tab?: st
       </div>
       {tab === 'overview' && <Overview projects={projects} payments={payments} counts={counts} activity={activity} />}
       {tab === 'builds' && <Projects projects={projects} />}
-      {tab === 'customers' && <Customers customers={customers} projects={projects} payments={payments} />}
+      {tab === 'customers' && <Customers customers={customers} projects={projects} payments={payments} me={me.id} />}
       {tab === 'payments' && <Payments payments={payments} />}
       {tab === 'changes' && <Changes changes={changes} />}
       {tab === 'code' && <Codes codes={codes} />}
@@ -112,17 +113,28 @@ function Projects({ projects }: any) {
   );
 }
 
-function Customers({ customers, projects, payments }: any) {
-  if (!customers.length) return <p className="empty">No customers yet.</p>;
+function Customers({ customers, projects, payments, me }: any) {
+  if (!customers.length) return <p className="empty">No users yet.</p>;
+  const admins = customers.filter((c: any) => c.role === 'admin').length;
   return (
-    <div className="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Projects</th><th className="num">Total paid</th><th>Since</th></tr></thead><tbody>
-      {customers.map((c: any) => {
-        const mine = projects.filter((p: any) => p.customer_id === c.id);
-        const paid = payments.filter((x: any) => x.status === 'paid' && mine.some((p: any) => p.id === x.project_id)).reduce((s: number, x: any) => s + x.amount_cents, 0);
-        return <tr key={c.id}><td><strong>{c.full_name || 'No name'}</strong></td><td>{c.email}</td><td>{c.phone || <span className="muted">None</span>}</td>
-          <td>{mine.map((p: any) => <div key={p.id}>{p.name} <Pill map={STATUS} k={p.status} /></div>)}</td><td className="num">{money(paid)}</td><td>{fdate(c.created_at)}</td></tr>;
-      })}
-    </tbody></table></div>
+    <>
+      <div className="toolbar"><h2>Users</h2><span className="muted" style={{ fontSize: 14 }}>{customers.length} {customers.length === 1 ? 'person' : 'people'}, {admins} with admin access. Turn on Admin to give someone access to this dashboard.</span></div>
+      <div className="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Projects</th><th className="num">Total paid</th><th>Since</th><th>Admin</th></tr></thead><tbody>
+        {customers.map((c: any) => {
+          const mine = projects.filter((p: any) => p.customer_id === c.id);
+          const paid = payments.filter((x: any) => x.status === 'paid' && mine.some((p: any) => p.id === x.project_id)).reduce((s: number, x: any) => s + x.amount_cents, 0);
+          const isAdmin = c.role === 'admin';
+          const self = c.id === me;
+          return <tr key={c.id}><td><strong>{c.full_name || 'No name'}</strong>{self && <div className="muted" style={{ fontSize: 13 }}>You</div>}</td><td>{c.email}</td><td>{c.phone || <span className="muted">None</span>}</td>
+            <td>{mine.length ? mine.map((p: any) => <div key={p.id}>{p.name} <Pill map={STATUS} k={p.status} /></div>) : <span className="muted">None</span>}</td><td className="num">{money(paid)}</td><td>{fdate(c.created_at)}</td>
+            <td><form action={setRole}><Hidden id={c.id} /><input type="hidden" name="role" value={isAdmin ? 'customer' : 'admin'} />
+              <button className="switch" role="switch" aria-checked={isAdmin} disabled={self}
+                aria-label={`Admin access for ${c.full_name || c.email}`} title={self ? 'You can’t remove your own admin access' : undefined}>
+                <span className="track" aria-hidden="true" />{isAdmin ? 'On' : 'Off'}
+              </button></form></td></tr>;
+        })}
+      </tbody></table></div>
+    </>
   );
 }
 

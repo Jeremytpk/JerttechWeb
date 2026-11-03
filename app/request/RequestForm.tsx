@@ -1,40 +1,62 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useState, useTransition } from 'react';
+import { useFormState } from 'react-dom';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import Link from 'next/link';
 import { submitRequest, type RequestState } from './actions';
-import { emailSignInLink } from '@/lib/firebase/client';
+import { authMessage, clientAuth, startSession } from '@/lib/firebase/client';
 import { ADDONS, PLANS, PLAN_ORDER, addonPrice, estimate, money, planPrice, type PlanId, type ProjectType } from '@/lib/pricing';
 
-function Submit() {
-  const { pending } = useFormStatus();
-  return <button className="btn btn-primary" type="submit" disabled={pending}>{pending ? 'Sending…' : 'Send my request'}</button>;
-}
+type Account = { email: string; name: string; phone: string } | null;
 
-export default function RequestForm({ initialPlan }: { initialPlan: PlanId }) {
+export default function RequestForm({ initialPlan, account }: { initialPlan: PlanId; account: Account }) {
   const [state, action] = useFormState<RequestState, FormData>(submitRequest, {});
   const [plan, setPlan] = useState<PlanId>(initialPlan);
   const [type, setType] = useState<ProjectType>('Mobile app');
   const [addons, setAddons] = useState<string[]>([]);
-  const [linkSent, setLinkSent] = useState<boolean | null>(null);
+  const [signedIn, setSignedIn] = useState<string | null>(account?.email ?? null);
+  const [hasAccount, setHasAccount] = useState(false);
+  const [authError, setAuthError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [sending, startTransition] = useTransition();
   const p = PLANS[plan];
   const est = estimate(plan, addons, type);
 
-  // Once the request is saved, email a sign-in link so they can follow the project.
-  useEffect(() => {
-    if (state.tracking && state.email) emailSignInLink(state.email, '/portal').then(() => setLinkSent(true), () => setLinkSent(false));
-  }, [state.tracking, state.email]);
+  // Not signed in yet: create their account (or sign them in) first, then send the request.
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    setAuthError('');
+    if (!signedIn) {
+      const email = String(fd.get('email') || '').trim().toLowerCase();
+      const password = String(fd.get('password') || '');
+      setBusy(true);
+      try {
+        const auth = clientAuth();
+        const cred = hasAccount
+          ? await signInWithEmailAndPassword(auth, email, password)
+          : await createUserWithEmailAndPassword(auth, email, password);
+        await startSession(cred.user, { name: String(fd.get('name') || '') });
+        setSignedIn(email);
+      } catch (err) {
+        if ((err as { code?: string }).code === 'auth/email-already-in-use') setHasAccount(true);
+        setAuthError(authMessage(err));
+        setBusy(false);
+        return;
+      }
+      setBusy(false);
+    }
+    fd.delete('password'); // never sent to our server
+    fd.delete('email');
+    startTransition(() => action(fd));
+  }
 
   if (state.tracking) return (
     <div className="done-box" style={{ marginBottom: 40 }}>
       <h2>Request sent</h2>
       <p>Thanks! We’ll review your idea and email your quote. Your tracking code is:</p>
       <div className="code">{state.tracking}</div>
-      <p style={{ marginBottom: 18 }}>
-        {linkSent === false
-          ? <>We couldn’t email your sign-in link just now. You can get one any time from <Link href="/login">Sign in</Link> with {state.email}.</>
-          : <>We also sent a sign-in link to {state.email}. Use it to follow your project, approve your quote and pay.</>}
-      </p>
+      <p style={{ marginBottom: 18 }}>You’re signed in as {state.email}. Follow your project, approve your quote and pay from My projects.</p>
       <div className="btns"><Link className="btn btn-primary" href="/portal">Go to my projects</Link></div>
     </div>
   );
@@ -46,15 +68,35 @@ export default function RequestForm({ initialPlan }: { initialPlan: PlanId }) {
   });
 
   return (
-    <form className="req" action={action}>
+    <form className="req" onSubmit={onSubmit}>
       <div>
         <fieldset>
           <legend>About you</legend>
-          <div className="row2">
-            <div className="field"><label htmlFor="f-name">Full name</label><input type="text" id="f-name" name="name" required autoComplete="name" /></div>
-            <div className="field"><label htmlFor="f-email">Email</label><input type="email" id="f-email" name="email" required autoComplete="email" /></div>
-          </div>
-          <div className="field"><label htmlFor="f-phone">Phone <span className="hint">(optional)</span></label><input type="tel" id="f-phone" name="phone" autoComplete="tel" /></div>
+          {signedIn ? (
+            <>
+              <p className="muted" style={{ marginBottom: 14, fontSize: 15 }}>Signed in as <strong>{signedIn}</strong>.</p>
+              <div className="field"><label htmlFor="f-name">Full name</label><input type="text" id="f-name" name="name" required autoComplete="name" defaultValue={account?.name} /></div>
+            </>
+          ) : (
+            <>
+              <p className="muted" style={{ marginBottom: 14, fontSize: 15 }}>
+                {hasAccount ? 'Sign in with your JertTech password to send this request.' : 'We’ll create your account so you can follow your project.'}{' '}
+                <button type="button" className="linkish" onClick={() => { setHasAccount(!hasAccount); setAuthError(''); }}>
+                  {hasAccount ? 'I’m new here' : 'Already have an account? Sign in'}
+                </button>
+              </p>
+              <div className="row2">
+                <div className="field"><label htmlFor="f-name">Full name</label><input type="text" id="f-name" name="name" required autoComplete="name" /></div>
+                <div className="field"><label htmlFor="f-email">Email</label><input type="email" id="f-email" name="email" required autoComplete="email" /></div>
+              </div>
+              <div className="field">
+                <label htmlFor="f-password">{hasAccount ? 'Password' : 'Choose a password'}</label>
+                {!hasAccount && <span className="hint">At least 8 characters.</span>}
+                <input type="password" id="f-password" name="password" required minLength={hasAccount ? undefined : 8} autoComplete={hasAccount ? 'current-password' : 'new-password'} />
+              </div>
+            </>
+          )}
+          <div className="field"><label htmlFor="f-phone">Phone <span className="hint">(optional)</span></label><input type="tel" id="f-phone" name="phone" autoComplete="tel" defaultValue={account?.phone} /></div>
           <div className="hp" aria-hidden="true"><label>Company<input name="company" tabIndex={-1} autoComplete="off" /></label></div>
         </fieldset>
         <fieldset>
@@ -94,8 +136,10 @@ export default function RequestForm({ initialPlan }: { initialPlan: PlanId }) {
         <fieldset>
           <label className="agree"><input type="checkbox" name="agree" required /> I understand every JertTech app and website shows a small “Powered by JertTech” badge, and the code belongs to JertTech unless I buy it.</label>
         </fieldset>
-        {state.error && <p className="form-msg err" role="alert">{state.error}</p>}
-        <Submit />
+        {(authError || state.error) && <p className="form-msg err" role="alert">{authError || state.error}</p>}
+        <button className="btn btn-primary" type="submit" disabled={busy || sending}>
+          {busy ? (hasAccount ? 'Signing in…' : 'Creating your account…') : sending ? 'Sending…' : 'Send my request'}
+        </button>
       </div>
       <aside className="estimate" aria-live="polite">
         <h2>Your estimate</h2>

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { adminAuth, firebaseConfigured } from '@/lib/firebase/admin';
-import { getRow } from '@/lib/db';
+import { col, getRow, now, updateRow } from '@/lib/db';
 import { SESSION_COOKIE, SESSION_DAYS } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
@@ -8,21 +8,28 @@ export const dynamic = 'force-dynamic';
 /** Turns a fresh Firebase sign-in (ID token) into a JertTech session cookie. */
 export async function POST(req: NextRequest) {
   if (!firebaseConfigured()) return NextResponse.json({ error: 'unavailable' }, { status: 503 });
-  const { idToken } = await req.json().catch(() => ({}));
+  const { idToken, name } = await req.json().catch(() => ({}));
   if (typeof idToken !== 'string') return NextResponse.json({ error: 'bad-request' }, { status: 400 });
 
-  let uid: string;
+  let uid: string, email: string;
   try {
     const t = await adminAuth().verifyIdToken(idToken, true);
     if (Date.now() / 1000 - t.auth_time > 5 * 60) return NextResponse.json({ error: 'stale' }, { status: 401 });
     uid = t.uid;
+    email = (t.email || '').toLowerCase();
   } catch {
     return NextResponse.json({ error: 'invalid' }, { status: 401 });
   }
 
-  // The Firebase project's sign-in is shared with other apps, so a Firebase account alone isn't enough:
-  // only people with a JertTech profile (created by sending a request) can sign in here.
-  if (!(await getRow('profiles', uid))) return NextResponse.json({ error: 'no-account' }, { status: 403 });
+  // First sign-in on JertTech: create their profile. Everyone starts as a customer;
+  // an admin can switch them to admin from the dashboard.
+  const fullName = typeof name === 'string' ? name.trim().slice(0, 120) : '';
+  const profile = await getRow('profiles', uid);
+  if (!profile) {
+    await col('profiles').doc(uid).set({ email, full_name: fullName || null, phone: null, role: 'customer', stripe_customer_id: null, created_at: now() });
+  } else if (fullName && !profile.full_name) {
+    await updateRow('profiles', uid, { full_name: fullName });
+  }
 
   const expiresIn = SESSION_DAYS * 86400 * 1000;
   const cookie = await adminAuth().createSessionCookie(idToken, { expiresIn });
