@@ -46,7 +46,12 @@ nav.main{display:flex;gap:2px;margin-left:auto}
 nav.main a{padding:8px 13px;border-radius:9px;color:var(--ink-2);text-decoration:none;font-weight:600;font-size:15px;white-space:nowrap}
 nav.main a:hover{color:var(--ink)}
 nav.main a[aria-current="page"]{color:var(--ink);background:var(--surface-2)}
-.hdr-actions{display:flex;align-items:center;gap:8px;flex:none}
+.hdr-actions{display:flex;align-items:center;gap:10px;flex:none}
+.avatar{position:relative;display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:var(--surface-2);color:var(--ink-2);border:1.5px solid var(--line);overflow:hidden;transition:border-color .15s,color .15s}
+.avatar svg{position:absolute;left:50%;top:5px;width:32px;height:32px;transform:translateX(-50%)}
+.avatar:hover{border-color:var(--brand);color:var(--brand)}
+.avatar:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.avatar.on{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
 @media (max-width:760px){
   .hdr{flex-wrap:wrap;padding:10px 0;gap:8px}
   .hdr .hdr-actions{margin-left:auto}
