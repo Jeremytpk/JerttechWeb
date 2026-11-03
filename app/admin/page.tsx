@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { requireAdmin, supabaseAdmin } from '@/lib/supabase/server';
+import { requireAdmin } from '@/lib/auth';
+import { allRows, newest, type Row } from '@/lib/db';
 import { PLANS, STAGES, MAINTENANCE_CENTS, money, monthlyCents, type PlanId } from '@/lib/pricing';
 import { Pill, STATUS, PAY, CH, CODE, CH_TYPE, URG, CANCEL_OPT, fdate } from '@/lib/labels';
 import { setStage, setQuote, setChangeStatus, decideCode, processCancel, setProjectStatus } from './actions';
@@ -13,16 +14,20 @@ const TABS = [['overview', 'Overview'], ['builds', 'Projects'], ['customers', 'C
 export default async function Admin({ searchParams }: { searchParams: { tab?: string } }) {
   if (!(await requireAdmin())) redirect('/');
   const tab = TABS.some(t => t[0] === searchParams.tab) ? searchParams.tab! : 'overview';
-  const db = supabaseAdmin();
-  const [{ data: projects = [] }, { data: customers = [] }, { data: payments = [] }, { data: changes = [] }, { data: codes = [] }, { data: cancels = [] }, { data: activity = [] }] = await Promise.all([
-    db.from('projects').select('*, profiles(full_name, email)').order('created_at', { ascending: false }),
-    db.from('profiles').select('*').eq('role', 'customer').order('created_at', { ascending: false }),
-    db.from('payments').select('*, projects(name, profiles(full_name))').order('created_at', { ascending: false }).limit(300),
-    db.from('change_requests').select('*, projects(name)').order('created_at', { ascending: false }).limit(300),
-    db.from('code_requests').select('*, projects(name, plan, profiles(full_name))').order('created_at', { ascending: false }),
-    db.from('cancellations').select('*, projects(name, plan, profiles(full_name))').order('created_at', { ascending: false }),
-    db.from('activity').select('*').order('created_at', { ascending: false }).limit(15),
-  ]) as any[];
+  const [profiles, projectRows, paymentRows, changeRows, codeRows, cancelRows, activityRows] = await Promise.all(
+    ['profiles', 'projects', 'payments', 'change_requests', 'code_requests', 'cancellations', 'activity'].map(allRows),
+  );
+  // Join in memory: each row gets its project, and each project its customer.
+  const people = new Map(profiles.map(p => [p.id, p]));
+  const projects: any[] = projectRows.sort(newest).map(p => ({ ...p, profiles: people.get(p.customer_id) }));
+  const byId = new Map(projects.map(p => [p.id, p]));
+  const join = (list: Row[], limit?: number): any[] => list.sort(newest).slice(0, limit).map(r => ({ ...r, projects: byId.get(r.project_id) }));
+  const customers: any[] = profiles.filter(p => p.role === 'customer').sort(newest);
+  const payments = join(paymentRows, 300);
+  const changes = join(changeRows, 300);
+  const codes = join(codeRows);
+  const cancels = join(cancelRows);
+  const activity: any[] = activityRows.sort(newest).slice(0, 15);
 
   const counts = {
     builds: projects.filter((p: any) => p.status === 'building').length,

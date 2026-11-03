@@ -1,7 +1,7 @@
 'use server';
-import { supabaseAdmin, supabaseServer, supabaseConfigured, logActivity } from '@/lib/supabase/server';
+import { adminAuth, firebaseConfigured } from '@/lib/firebase/admin';
+import { getRow, col, now, addRow, updateRow, nextTracking, logActivity } from '@/lib/db';
 import { estimate, isPlan, PLANS, type ProjectType } from '@/lib/pricing';
-import { siteUrl } from '@/lib/stripe';
 
 export type RequestState = { error?: string; tracking?: string; email?: string };
 
@@ -26,27 +26,37 @@ export async function submitRequest(_: RequestState, form: FormData): Promise<Re
   if (!agree) missing.push('your agreement to the badge and code terms');
   if (missing.length || !isPlan(plan)) return { error: `Please add ${missing.join(', ')}.` };
 
-  if (!supabaseConfigured()) return { error: 'We can’t take requests online right now. Please try again later.' };
-  const db = supabaseAdmin();
-  let { data: profile } = await db.from('profiles').select('id').eq('email', email).maybeSingle();
-  if (!profile) {
-    const { data: created, error } = await db.auth.admin.createUser({ email, email_confirm: true });
-    if (error || !created.user) return { error: 'We couldn’t create your account. Please try again.' };
-    profile = { id: created.user.id };
+  if (!firebaseConfigured()) return { error: 'We can’t take requests online right now. Please try again later.' };
+
+  // One Firebase sign-in account per email. The Firebase project is shared with other apps,
+  // so reuse the account if this email already has one.
+  let uid: string;
+  try {
+    uid = (await adminAuth().getUserByEmail(email)).uid;
+  } catch {
+    try { uid = (await adminAuth().createUser({ email })).uid; }
+    catch { return { error: 'We couldn’t create your account. Please try again.' }; }
   }
-  await db.from('profiles').update({ full_name: name, ...(phone ? { phone } : {}) }).eq('id', profile.id);
+  if (await getRow('profiles', uid)) {
+    await updateRow('profiles', uid, { full_name: name, ...(phone ? { phone } : {}) });
+  } else {
+    await col('profiles').doc(uid).set({ email, full_name: name, phone: phone || null, role: 'customer', stripe_customer_id: null, created_at: now() });
+  }
 
   const addons = form.getAll('addon').map(String);
   const est = estimate(plan, addons, type);
-  const { data: project, error } = await db.from('projects').insert({
-    customer_id: profile.id, type, name: projectName, idea, plan, addons: est.addons, deadline, quote_cents: est.dueCents,
-  }).select('tracking').single();
-  if (error || !project) return { error: 'We couldn’t save your request. Please try again.' };
+  const tracking = await nextTracking();
+  try {
+    await addRow('projects', {
+      customer_id: uid, tracking, type, name: projectName, idea, plan, addons: est.addons, deadline,
+      stage: 0, status: 'building', quote_cents: est.dueCents, stripe_subscription_id: null, offline_at: null,
+    });
+  } catch {
+    return { error: 'We couldn’t save your request. Please try again.' };
+  }
 
   await logActivity(`New ${type.toLowerCase()} request: ${projectName} (${PLANS[plan].name}) from ${name}.`);
 
-  // Email a sign-in link so they can follow their project.
-  await supabaseServer().auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: `${siteUrl()}/auth/callback?next=/portal` } });
-
-  return { tracking: project.tracking, email };
+  // The browser emails the sign-in link (see RequestForm), so they can follow their project.
+  return { tracking, email };
 }

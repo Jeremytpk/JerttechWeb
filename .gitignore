@@ -4,3 +4,6 @@ node_modules
 .env.local
 .DS_Store
 *.tsbuildinfo
+*-key.json
+*service-account*.json
+.netlify

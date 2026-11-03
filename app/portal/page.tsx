@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { EmptyArt } from '@/components/Illustrations';
 import { redirect } from 'next/navigation';
-import { currentUser, supabaseServer } from '@/lib/supabase/server';
+import { currentUser } from '@/lib/auth';
+import { getRow, findRows, newest, type Row } from '@/lib/db';
 import { PLANS, STAGES, MAINTENANCE_CENTS, money, planPrice, type PlanId } from '@/lib/pricing';
 import { Pill, STATUS, PAY, CH, CODE, CH_TYPE, URG, fdate } from '@/lib/labels';
 import { startPlan, requestChange, requestBuyout, payBuyout, requestCancel, billingPortal } from './actions';
@@ -12,16 +13,24 @@ export const dynamic = 'force-dynamic';
 export default async function Portal({ searchParams }: { searchParams: { paid?: string } }) {
   const user = await currentUser();
   if (!user) redirect('/login');
-  const db = supabaseServer(); // row-level security: only this customer's rows
-  const [{ data: profile }, { data: projects }] = await Promise.all([
-    db.from('profiles').select('*').eq('id', user.id).single(),
-    db.from('projects').select('*, payments(*), change_requests(*), code_requests(*), cancellations(*)').order('created_at', { ascending: false }),
+  // Only this customer's rows: every query is filtered by their Firebase uid.
+  const [profile, projectRows, payments, changes, codes, cancels] = await Promise.all([
+    getRow('profiles', user.id),
+    findRows('projects', 'customer_id', user.id),
+    findRows('payments', 'customer_id', user.id),
+    findRows('change_requests', 'customer_id', user.id),
+    findRows('code_requests', 'customer_id', user.id),
+    findRows('cancellations', 'customer_id', user.id),
   ]);
+  const of = (list: Row[], id: string) => list.filter(r => r.project_id === id);
+  const projects = projectRows.sort(newest).map(p => ({
+    ...p, payments: of(payments, p.id), change_requests: of(changes, p.id), code_requests: of(codes, p.id), cancellations: of(cancels, p.id),
+  }));
 
   return (
     <div className="wrap">
       <div className="page-head" style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <div><h1>My projects</h1><p>Signed in as {profile?.email}.</p></div>
+        <div><h1>My projects</h1><p>Signed in as {profile?.email || user.email}.</p></div>
         <div className="btns">
           {profile?.stripe_customer_id && <form action={billingPortal}><button className="btn btn-ghost btn-sm">Update card and invoices</button></form>}
           <form action="/auth/signout" method="post"><button className="btn btn-ghost btn-sm">Sign out</button></form>

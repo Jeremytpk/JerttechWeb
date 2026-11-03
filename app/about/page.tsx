@@ -53,7 +53,7 @@ export default function AboutPage() {
           <div>
             <div className="section-head">
               <h2>Who’s behind it</h2>
-              <p>JertTech was founded and is run by Jeremy Topaka. The same team built and shipped Moova Africa, EliteReply and DriverRoom, all live on the App Store. When you work with JertTech, you talk directly to the people building your project.</p>
+              <p>JertTech was founded and is run by Jeremy Topaka. The same team built and shipped Moova Africa, EliteReply, DriverRoom and LitChat, all live today. When you work with JertTech, you talk directly to the people building your project.</p>
             </div>
             <p><Link href="/work">See our work</Link></p>
           </div>

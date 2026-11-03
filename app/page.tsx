@@ -25,7 +25,7 @@ export default function Home() {
               <Link className="btn btn-primary" href="/request">Start your request</Link>
               <Link className="btn btn-ghost" href="/plans">Compare plans</Link>
             </div>
-            <p className="fine">From the team behind Moova Africa, EliteReply and DriverRoom, all live on the App Store.</p>
+            <p className="fine">From the team behind Moova Africa, EliteReply, DriverRoom and LitChat, all live today.</p>
           </div>
           <PhoneMockup />
         </div>
@@ -45,7 +45,7 @@ export default function Home() {
 
       <section className="block" style={{ paddingTop: 24 }}>
         <div className="wrap">
-          <div className="section-head"><h2>Apps we’ve built and shipped</h2><p>Real apps with real backends, live on the App Store today.</p></div>
+          <div className="section-head"><h2>Apps we’ve built and shipped</h2><p>Real apps with real backends, live today on the App Store, Google Play and the web.</p></div>
           <Work />
         </div>
       </section>

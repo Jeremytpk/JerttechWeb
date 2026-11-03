@@ -1,8 +1,9 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import Link from 'next/link';
 import { submitRequest, type RequestState } from './actions';
+import { emailSignInLink } from '@/lib/firebase/client';
 import { ADDONS, PLANS, PLAN_ORDER, addonPrice, estimate, money, planPrice, type PlanId, type ProjectType } from '@/lib/pricing';
 
 function Submit() {
@@ -15,15 +16,25 @@ export default function RequestForm({ initialPlan }: { initialPlan: PlanId }) {
   const [plan, setPlan] = useState<PlanId>(initialPlan);
   const [type, setType] = useState<ProjectType>('Mobile app');
   const [addons, setAddons] = useState<string[]>([]);
+  const [linkSent, setLinkSent] = useState<boolean | null>(null);
   const p = PLANS[plan];
   const est = estimate(plan, addons, type);
+
+  // Once the request is saved, email a sign-in link so they can follow the project.
+  useEffect(() => {
+    if (state.tracking && state.email) emailSignInLink(state.email, '/portal').then(() => setLinkSent(true), () => setLinkSent(false));
+  }, [state.tracking, state.email]);
 
   if (state.tracking) return (
     <div className="done-box" style={{ marginBottom: 40 }}>
       <h2>Request sent</h2>
       <p>Thanks! We’ll review your idea and email your quote. Your tracking code is:</p>
       <div className="code">{state.tracking}</div>
-      <p style={{ marginBottom: 18 }}>We also sent a sign-in link to {state.email}. Use it to follow your project, approve your quote and pay.</p>
+      <p style={{ marginBottom: 18 }}>
+        {linkSent === false
+          ? <>We couldn’t email your sign-in link just now. You can get one any time from <Link href="/login">Sign in</Link> with {state.email}.</>
+          : <>We also sent a sign-in link to {state.email}. Use it to follow your project, approve your quote and pay.</>}
+      </p>
       <div className="btns"><Link className="btn btn-primary" href="/portal">Go to my projects</Link></div>
     </div>
   );

@@ -2,7 +2,7 @@
 
 The real, production version of the JertTech website: public pages, request form, customer accounts, Stripe payments and the admin dashboard.
 
-Built with **Next.js** (the website), **Supabase** (database and sign-in) and **Stripe** (payments). It's designed to run on **Vercel**. All three have free tiers to get started; Stripe takes a fee per payment.
+Built with **Next.js** (the website), **Firebase** (Firestore database and passwordless sign-in, in the Aura project) and **Stripe** (payments). It's designed to run on **Vercel**. All three have free tiers to get started; Stripe takes a fee per payment.
 
 ## What's included
 
@@ -20,12 +20,18 @@ Built with **Next.js** (the website), **Supabase** (database and sign-in) and **
 
 ## Setup (about 30–45 minutes)
 
-### 1. Supabase (database and sign-in)
-1. Create a project at supabase.com.
-2. Open **SQL Editor → New query**, paste everything from `supabase/schema.sql`, and click **Run**.
-3. In **Authentication → URL Configuration**, set **Site URL** to `https://jerttech.com` and add `https://jerttech.com/auth/callback`, `https://jerttech.app/auth/callback` (and `http://localhost:3000/auth/callback` for testing) under **Redirect URLs**.
-4. In **Authentication → Providers → Email**, keep Email enabled. For real customers, set up custom SMTP under **Authentication → Emails** (for example with Resend or Postmark), because Supabase's built-in email is heavily rate-limited.
-5. Copy the **Project URL**, **anon key** and **service_role key** from **Project Settings → API**. Keep the service_role key secret.
+### 1. Firebase (database and sign-in)
+JertTech uses the Firestore database `ai-studio-628693c8-0773-4dc5-bbcc-e8b408cb96e0` in the **Aura** Firebase project (`aura-55447`). Everything is read and written by the website's server, so the database's security rules can stay "deny all" for browsers.
+
+The Aura project's sign-in is shared with other apps (Aura, LitChat, onatra…). JertTech only lets in people who have a JertTech profile, which is created when they send a request, and signing out of JertTech doesn't sign anyone out of the other apps.
+
+1. **Turn on email-link sign-in.** Firebase console → Aura → **Authentication → Sign-in method → Email/Password** → turn on **Email link (passwordless sign-in)** → Save. Password sign-in for your other apps keeps working.
+2. **Allow the JertTech domains.** **Authentication → Settings → Authorized domains** → add `jerttech.com`, `www.jerttech.com` and `jerttech.app` (`localhost` is already there).
+3. **Register the website.** **Project settings → General → Your apps → Add app → Web**, name it `JertTech`. Copy `apiKey` and `appId` into `NEXT_PUBLIC_FIREBASE_API_KEY` and `NEXT_PUBLIC_FIREBASE_APP_ID`.
+4. **Give the server a key.** **Project settings → Service accounts → Generate new private key** downloads a JSON file. Turn it into one line with `base64 -i the-file.json | tr -d '\n'` and put that in `FIREBASE_SERVICE_ACCOUNT_BASE64`. Then delete the downloaded file. (For tighter access, create a dedicated service account in Google Cloud with only the **Cloud Datastore User** and **Firebase Authentication Admin** roles and use its key instead.)
+5. **Sign-in emails.** Firebase sends the links. To make them come from JertTech, edit **Authentication → Templates → Email address sign-in** and, under **Customize domain**, use `jerttech.com`.
+
+The data model is described at the top of `lib/db.ts`.
 
 ### 2. Stripe (payments)
 1. Create an account at stripe.com. Start in **Test mode**.
@@ -44,9 +50,9 @@ Built with **Next.js** (the website), **Supabase** (database and sign-in) and **
 5. In Vercel **Settings → Domains**, add `jerttech.com` and follow the DNS instructions from your domain provider. Then add `jerttech.app` and choose **Redirect to jerttech.com** (308). Use one main domain: sign-ins only last on the domain they were made on, so customers would otherwise appear signed out when switching between the two.
 
 ### 4. Make yourself the admin
-1. Go to `https://jerttech.com/request` and send a test request with your own email (or create a user in Supabase **Authentication → Users**).
-2. In Supabase SQL Editor run:
-   `update public.profiles set role = 'admin' where email = 'your@email.com';`
+1. Go to `https://jerttech.com/request` and send a test request with your own email.
+2. On your computer, with `.env.local` filled in, run:
+   `npm run make-admin -- your@email.com`
 3. Sign in at `/login` and open `/admin`.
 
 ### 5. Test before going live
@@ -62,7 +68,7 @@ To test webhooks locally, install the Stripe CLI and run `stripe listen --forwar
 
 ## Before you take real customers
 - Have your **terms of service and privacy policy** reviewed (badge rule, code ownership, minimum terms, cancellation, data export) and add them as pages.
-- Set up **custom email (SMTP)** in Supabase so sign-in links arrive reliably.
+- Customize the **sign-in email** in Firebase (Authentication → Templates) so links come from jerttech.com.
 - Decide how you'll **notify yourself** of new requests. Activity shows in the admin overview; email or Slack alerts can be added.
 
 ## Where to change things
